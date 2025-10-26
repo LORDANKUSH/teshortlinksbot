@@ -4,14 +4,14 @@ import uuid
 from datetime import datetime
 from telegram import Update
 from telegram.ext import (
-    Application,
+    ApplicationBuilder,
     CommandHandler,
     ContextTypes,
 )
 
 # --- Database Setup ---
 DB_PATH = "bot.db"
-OWNER_ID = int(os.environ.get("OWNER_ID", "123456789"))  # change or set in Railway Variables
+OWNER_ID = int(os.environ.get("OWNER_ID", "123456789"))  # your ID or set in Railway vars
 
 conn = sqlite3.connect(DB_PATH, check_same_thread=False)
 cur = conn.cursor()
@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS links (
 )
 """)
 conn.commit()
+
 
 # --- Helper Functions ---
 def create_links(count=10):
@@ -56,7 +57,6 @@ def mark_link_used(token, user_id):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     args = context.args
-
     if args:
         token = args[0]
         msg = mark_link_used(token, user.id)
@@ -99,25 +99,22 @@ async def restart(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("♻️ Database reset complete!")
 
 
-# --- Main Function ---
-async def main():
+# --- Main ---
+def main():
     token = os.environ.get("BOT_TOKEN")
     if not token:
         print("❌ BOT_TOKEN not found in environment variables.")
         return
 
-    app = Application.builder().token(token).build()
-
+    app = ApplicationBuilder().token(token).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("generate", generate))
     app.add_handler(CommandHandler("stats", stats))
     app.add_handler(CommandHandler("restart", restart))
 
     print("✅ Bot is running...")
-    await app.run_polling()
+    app.run_polling(stop_signals=None)
 
 
-# --- Entry Point ---
 if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+    main()
